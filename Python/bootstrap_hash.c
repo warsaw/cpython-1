@@ -554,27 +554,26 @@ _Py_HashRandomization_Init(const _PyCoreConfig *config)
         if (config->hash_seed == 0) {
             /* disable the randomized hash */
             memset(secret, 0, secret_size);
-        }
-        else {
-            /* use the specified hash seed */
-            lcg_urandom(config->hash_seed, secret, secret_size);
+            return _Py_INIT_OK();
         }
     }
     else {
-        /* use a random hash seed */
-        int res;
-
         /* _PyRandom_Init() is called very early in the Python initialization
            and so exceptions cannot be used (use raise=0).
 
            _PyRandom_Init() must not block Python initialization: call
-           pyurandom() is non-blocking mode (blocking=0): see the PEP 524. */
-        res = pyurandom(secret, secret_size, 0, 0);
+           pyurandom() is non-blocking mode (blocking=0): see the PEP 524.
+        */
+        int res = pyurandom((void *)&config->hash_seed,
+                            sizeof(config->hash_seed),
+                            0, 0);
         if (res < 0) {
             return _Py_INIT_USER_ERR("failed to get random numbers "
                                      "to initialize Python");
         }
     }
+    /* use the specified hash seed */
+    lcg_urandom(config->hash_seed, secret, secret_size);
     return _Py_INIT_OK();
 }
 
